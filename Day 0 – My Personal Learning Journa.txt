@@ -1,0 +1,117 @@
+Day 0 – My Personal Learning Journal
+
+Name: Mohamed Rizath
+Track: Intern Onboarding – System Design Crash Course
+
+Section 1: What I Already Know
+I know the basics of programming, such as variables, loops, conditions, and functions.
+I have a basic understanding of APIs and how they help different applications communicate with each other.
+I know that databases are used to store and manage information.
+I understand that debugging helps us find and fix errors in our code.
+I know that becoming a good software engineer requires practice, patience, and continuous learning.
+Section 2: What I Want to Understand by Day 5
+I want to understand how an API communicates with a database and how data moves between them.
+I want to learn how to draw a simple system design using a client, server, API, and database, and explain how they work together.
+I want to understand scalability, reliability, and availability and explain the differences using simple examples.
+Section 3: My Learning Style
+
+1. Do I learn better by reading, watching, or doing?
+
+I learn better by doing practical exercises and trying things on my own. Reading documentation and watching examples also help me understand new concepts.
+
+2. When I get stuck, what is my first instinct?
+
+When I get stuck, I usually search online for a solution or try different ways to solve the problem. Sometimes I spend too much time trying to figure things out by myself. I want to improve by asking better questions and getting help when I need it.
+
+3. What is one learning habit I want to build this week?
+
+I want to make it a habit to write short notes about what I learn every day. I also want to practise explaining concepts in my own words instead of just memorising them.
+
+Section 4: Daily Learning Log
+Day 1 – Systems Thinking and Requirements
+What I understood most clearly today: I learned that a system has different parts that work together to achieve a common goal.
+What still feels unclear: I need more practice identifying system boundaries and understanding all the requirements before designing a system.
+What I made or produced today: I created a simple system diagram and listed some basic requirements for an application.
+Day 2 – APIs, Databases, and Cache
+What I understood most clearly today: I understood how APIs help different components communicate and how databases store information.
+What still feels unclear: I need to understand better how caching works and when it is useful.
+What I made or produced today: I drew a simple diagram showing how a client, API, cache, and database can work together.
+Day 3 – Quality and Reliability
+What I understood most clearly today: I learned that a good system should work reliably and handle failures without affecting the entire service.
+What still feels unclear: I want to understand how systems recover when one component fails.
+What I made or produced today: I wrote down some possible system failures and ways to reduce their impact.
+Day 4 – End-to-End System Design
+What I understood most clearly today: I learned how different components connect to form a complete system.
+What still feels unclear: I need more practice choosing the right components and understanding the trade-offs between different designs.
+What I made or produced today: I created a basic system design diagram and described how a request moves through the system.
+Day 5 – Specifications as Contracts
+What I understood most clearly today: I learned that a specification explains how a system should behave and helps developers understand what they need to build.
+What still feels unclear: I need more practice writing specifications that cover errors and unusual situations.
+What I made or produced today: I wrote a simple API specification with request details, expected responses, and possible errors.
+Deliverable 2: My Daily Feynman Checks
+Day 1 – System Boundary
+
+A system boundary tells us what belongs to a system and what is outside it. It is similar to a house boundary that separates our property from the outside area. When designing software, we need to know which parts we are responsible for and which parts belong to other systems. If we do not define this properly, we might miss important requirements or make the design more complicated than necessary.
+
+Day 2 – API
+
+An API is like a waiter in a restaurant. We tell the waiter what we need, and the waiter communicates with the kitchen and brings us the result. In the same way, an application sends a request through an API and receives a response. If the request is incorrect or something goes wrong, the API may return an error instead of the expected result.
+
+Day 3 – Reliability
+
+Reliability means that a system can continue doing its job correctly when people need it. It is like a bus service that people depend on to get to work every day. If the service stops whenever one problem occurs, people cannot depend on it. In software, we can improve reliability by handling errors properly, monitoring the system, and preparing for failures.
+
+Day 4 – Cache
+
+A cache is a place where frequently used information is stored temporarily so it can be accessed faster. It is like keeping the books you use most often on your desk instead of going to the library every time. Caching can make applications faster and reduce the workload on a database. However, if the cached information is not updated properly, users might see old information.
+
+Day 5 – Specification
+
+A specification explains what a software component is expected to do. It is like a recipe that tells us what ingredients we need and how to prepare a meal. In software, it explains what information a component receives, what result it should return, and what should happen when something goes wrong. If the specification is unclear, developers might build something different from what was expected.
+
+Deliverable 3: My Day 5 Review
+1. What I Learned About My Previous Knowledge
+
+Basic programming
+
+I already knew the basics of programming, such as loops, variables, and functions. However, I realised that knowing the syntax is not enough. I also need to understand how to use these concepts to solve real problems.
+
+APIs
+
+I knew that APIs allow applications to communicate with each other. Now I understand that APIs also define how requests and responses work and how errors are handled.
+
+Databases
+
+I knew that databases store information. I learned that choosing how to organise data and retrieve it efficiently is also important.
+
+Debugging
+
+I understood that debugging means fixing errors in code. Now I realise that I should first understand why the error happened instead of randomly changing the code.
+
+Software development
+
+I knew that software development involves coding and problem-solving. After this course, I understand that planning, system design, testing, communication, and continuous learning are also important parts of the process.
+
+2. Which of My Three Learning Goals Did I Achieve?
+
+I improved my understanding of how APIs and databases work together. I also learned how to represent a basic system using a simple architecture diagram. I now have a better understanding of scalability, reliability, and availability, although I still need more practical experience with these concepts.
+
+3. Which Learning Habit Did I Build?
+
+I started making short notes about the concepts I learned and tried to explain them in my own words. This helped me identify the areas I understood and the areas where I needed more practice.
+
+4. Which Learning Habit Do I Still Need to Improve?
+
+I need to become more consistent with practising what I learn. Sometimes reading a concept makes it feel easy, but I find it harder when I try to apply it myself. I want to spend more time building small projects and solving problems.
+
+5. What Is One Concept I Can Explain Confidently?
+
+I can explain what an API is using the restaurant waiter example. An API acts as a way for two software components to communicate. One component sends a request, and the other provides a response through the agreed rules.
+
+My Final Reflection
+
+This crash course helped me understand that learning software engineering is not just about memorising definitions. It is about understanding concepts, trying them in practice, asking questions, and learning from mistakes.
+
+I also learned that it is okay not to understand everything immediately. Instead of getting frustrated when I get stuck, I should break the problem into smaller parts and ask for help when necessary.
+
+Going forward, I want to improve my system design knowledge, practise more, and use AI as a tool to support my learning rather than depend on it for every answer. My goal is to keep learning and become a better software engineer step by step.
