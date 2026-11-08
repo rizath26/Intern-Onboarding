@@ -1,0 +1,163 @@
+{
+  "info": {
+    "name": "BookSwap mock smoke test",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Run against Prism: npx @stoplight/prism-cli@5.14.2 mock openapi/bookswap-openapi.yaml --port 4010"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:4010"
+    },
+    {
+      "key": "ownerToken",
+      "value": "owner-test-token"
+    },
+    {
+      "key": "borrowerToken",
+      "value": "borrower-test-token"
+    }
+  ],
+  "item": [
+    {
+      "name": "1 List books (expect 200)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ownerToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/books?page=1&pageSize=20",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "books"
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "pageSize",
+              "value": "20"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "2 Create book (expect 201)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ownerToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/books",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "books"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Ponniyin Selvan\",\n  \"author\": \"Kalki Krishnamurthy\",\n  \"isbn\": \"9788184930801\",\n  \"condition\": \"good\"\n}"
+        }
+      }
+    },
+    {
+      "name": "3 Create book missing title (expect 400 or 422)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ownerToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/books",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "books"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"author\": \"Kalki Krishnamurthy\",\n  \"condition\": \"good\"\n}"
+        }
+      }
+    },
+    {
+      "name": "4 Request to borrow (expect 201)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{borrowerToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "3f6c2a9e-1b7d-4e2a-9c11-5d8e0f7a2b44"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/books/999/borrow-requests",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "books",
+            "999",
+            "borrow-requests"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"Can I borrow it this weekend?\"\n}"
+        }
+      }
+    },
+    {
+      "name": "5 List books without token (expect 401)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/books",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "books"
+          ]
+        }
+      }
+    }
+  ]
+}
