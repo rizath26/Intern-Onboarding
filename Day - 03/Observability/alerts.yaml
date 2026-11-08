@@ -1,0 +1,310 @@
+# BookSwap alert definitions (v0.1)
+# Readable spec for each alert. Each one maps 1:1 to an Azure Monitor
+# log search alert or metric alert rule in our Bicep. Severity follows Azure Monitor (0 = critical).
+#   Sev1 -> pager voice call + Teams     Sev2 -> pager + Teams     Sev3 -> Teams (+ ticket)
+# Action groups:
+#   ag-bookswap-oncall : SMS + voice to on-call, post to #bookswap-incidents
+#   ag-bookswap-teams  : post to #bookswap-incidents only
+#   ag-bookswap-ticket : post to Teams and create a work item
+# All log queries use sum(itemCount) because Application Insights samples telemetry.
+
+defaults:
+  appInsights: appi-bookswap-prod
+  logAnalytics: log-bookswap-prod
+  autoMitigate: true
+
+alerts:
+
+  - name: alert-search-burn-fast
+    protects: S1
+    type: logSearch
+    severity: 2
+    evaluationFrequency: 5m
+    windowSize: 1h
+    actionGroups: [ag-bookswap-oncall]
+    runbook: reliability/runbook.md#failure-2
+    query: |
+      requests
+      | where timestamp > ago(1h)
+      | where name == "GET /books"
+      | extend code = toint(resultCode)
+      | where code < 400 or code >= 500 or code == 429
+      | extend bad = iff(code between (200 .. 299) and duration < 800, 0, itemCount)
+      | summarize bad1h  = sum(bad),                         total1h = sum(itemCount),
+                  bad5m  = sumif(bad, timestamp > ago(5m)),  total5m = sumif(itemCount, timestamp > ago(5m))
+      | extend burn1h = (todouble(bad1h) / total1h) / 0.01,
+               burn5m = (todouble(bad5m) / total5m) / 0.01
+      | where total5m >= 50 and burn1h > 14.4 and burn5m > 14.4
+    condition: "result count > 0"
+
+  - name: alert-search-burn-slow
+    protects: S1
+    type: logSearch
+    severity: 3
+    evaluationFrequency: 15m
+    windowSize: 6h
+    actionGroups: [ag-bookswap-ticket]
+    runbook: reliability/runbook.md#failure-3
+    query: |
+      requests
+      | where timestamp > ago(6h)
+      | where name == "GET /books"
+      | extend code = toint(resultCode)
+      | where code < 400 or code >= 500 or code == 429
+      | extend bad = iff(code between (200 .. 299) and duration < 800, 0, itemCount)
+      | summarize bad6h  = sum(bad),                          total6h  = sum(itemCount),
+                  bad30m = sumif(bad, timestamp > ago(30m)),  total30m = sumif(itemCount, timestamp > ago(30m))
+      | extend burn6h  = (todouble(bad6h)  / total6h)  / 0.01,
+               burn30m = (todouble(bad30m) / total30m) / 0.01
+      | where total30m >= 100 and burn6h > 6 and burn30m > 6
+    condition: "result count > 0"
+
+  - name: alert-search-degraded
+    protects: S2
+    type: logSearch
+    severity: 3
+    evaluationFrequency: 15m
+    windowSize: 1h
+    actionGroups: [ag-bookswap-ticket]
+    runbook: reliability/runbook.md#failure-2
+    query: |
+      requests
+      | where timestamp > ago(1h)
+      | where name == "GET /books"
+      | where tostring(customDimensions.cacheStatus) in ("miss", "bypass")
+      | extend code = toint(resultCode)
+      | where code < 400 or code >= 500 or code == 429
+      | summarize bad   = sumif(itemCount, not(code between (200 .. 299) and duration < 2000)),
+                  total = sum(itemCount)
+      | where total >= 50 and todouble(bad) / total > 0.05
+    condition: "result count > 0"
+
+  - name: alert-listings-burn-fast
+    protects: S3
+    type: logSearch
+    severity: 2
+    evaluationFrequency: 5m
+    windowSize: 1h
+    actionGroups: [ag-bookswap-oncall]
+    runbook: reliability/runbook.md#failure-1
+    query: |
+      requests
+      | where timestamp > ago(1h)
+      | where name == "POST /listings"
+      | extend code = toint(resultCode)
+      | where code < 400 or code >= 500 or code == 429
+      | extend bad = iff(code between (200 .. 299), 0, itemCount)
+      | summarize bad1h = sum(bad),                        total1h = sum(itemCount),
+                  bad5m = sumif(bad, timestamp > ago(5m)), total5m = sumif(itemCount, timestamp > ago(5m))
+      | extend burn1h = (todouble(bad1h) / total1h) / 0.001,
+               burn5m = (todouble(bad5m) / total5m) / 0.001
+      | where total5m >= 20 and burn1h > 14.4 and burn5m > 14.4
+    condition: "result count > 0"
+
+  - name: alert-listings-outage
+    protects: S3, S8
+    type: logSearch
+    severity: 1
+    evaluationFrequency: 1m
+    windowSize: 5m
+    actionGroups: [ag-bookswap-oncall]
+    runbook: reliability/runbook.md#failure-1
+    query: |
+      requests
+      | where timestamp > ago(2m)
+      | where name == "POST /listings"
+      | extend code = toint(resultCode)
+      | where code < 400 or code >= 500 or code == 429
+      | summarize failed = sumif(itemCount, not(code between (200 .. 299))),
+                  total  = sum(itemCount)
+      | where total >= 10 and todouble(failed) / total >= 0.9
+    condition: "result count > 0"
+
+  - name: alert-edge-origin-down
+    protects: S3, S8
+    type: metric
+    resource: afd-bookswap
+    severity: 1
+    evaluationFrequency: 1m
+    actionGroups: [ag-bookswap-oncall]
+    runbook: reliability/runbook.md#failure-1
+    criteria:          # either criterion fires the alert (two rules in Bicep)
+      - metric: OriginHealthPercentage
+        aggregation: Average
+        operator: LessThan
+        threshold: 50
+        windowSize: 1m
+      - metric: Percentage5XX
+        aggregation: Average
+        operator: GreaterThan
+        threshold: 25
+        windowSize: 2m
+
+  - name: alert-loans-burn-fast
+    protects: S11
+    type: logSearch
+    severity: 2
+    evaluationFrequency: 5m
+    windowSize: 1h
+    actionGroups: [ag-bookswap-oncall]
+    runbook: reliability/runbook.md#failure-1
+    query: |
+      requests
+      | where timestamp > ago(1h)
+      | where name in ("POST /loans", "POST /loans/{loanId}/return")
+      | extend code = toint(resultCode)
+      | where code < 400 or code >= 500 or code == 429
+      | extend bad = iff(code between (200 .. 299), 0, itemCount)
+      | summarize bad1h = sum(bad),                        total1h = sum(itemCount),
+                  bad5m = sumif(bad, timestamp > ago(5m)), total5m = sumif(itemCount, timestamp > ago(5m))
+      | extend burn1h = (todouble(bad1h) / total1h) / 0.005,
+               burn5m = (todouble(bad5m) / total5m) / 0.005
+      | where total5m >= 20 and burn1h > 14.4 and burn5m > 14.4
+    condition: "result count > 0"
+
+  - name: alert-digest-age
+    protects: S12
+    type: logSearch
+    severity: 3
+    evaluationFrequency: 15m
+    windowSize: 1h
+    actionGroups: [ag-bookswap-ticket]
+    runbook: reliability/runbook.md#failure-3
+    mutedWhenFlag: digest.paused     # suppressed with an alert processing rule during the Sunday pause
+    query: |
+      customEvents
+      | where timestamp > ago(1h)
+      | where name == "digest.completed"
+      | extend waitMin = datetime_diff('minute', timestamp, todatetime(customDimensions.enqueuedTimeUtc))
+      | summarize slow = countif(waitMin > 45), total = count()
+      | where slow > 0
+    alsoMetric:
+      resource: sb-bookswap
+      metric: ActiveMessages
+      dimension: { EntityName: email-digest }
+      operator: GreaterThan
+      threshold: 5000
+      windowSize: 15m
+
+  - name: alert-duplicate-listings
+    protects: S4
+    type: scheduledJob            # daily Azure SQL check (query D in slo/slo-map.md)
+    schedule: "0 2 * * *"         # 02:00 daily
+    severity: 3
+    actionGroups: [ag-bookswap-ticket]
+    runbook: reliability/runbook.md#failure-1
+    condition: "query returns any rows"
+
+  - name: alert-token-lifetime
+    protects: S7
+    type: logSearch
+    severity: 3
+    evaluationFrequency: 1h
+    windowSize: 1h
+    actionGroups: [ag-bookswap-ticket]
+    runbook: security/review.md#review-table
+    query: |
+      customEvents
+      | where timestamp > ago(1h)
+      | where name == "auth.token_issued"
+      | where toint(customDimensions.lifetimeSeconds) > 3600
+    condition: "result count > 0"
+
+  - name: alert-audit-gap
+    protects: S9
+    type: scheduledJob            # compares SQL Loans rows with customEvents (query F in slo/slo-map.md)
+    schedule: "30 2 * * *"
+    severity: 3
+    actionGroups: [ag-bookswap-ticket]
+    runbook: security/review.md#review-table
+    condition: "audit events < SQL loan rows, or any event missing requestId or memberId"
+
+  - name: alert-sql-dependency-failures
+    protects: S1, S3, S11
+    type: logSearch
+    severity: 2
+    evaluationFrequency: 1m
+    windowSize: 5m
+    actionGroups: [ag-bookswap-oncall]
+    runbook: reliability/runbook.md#failure-1
+    query: |
+      dependencies
+      | where timestamp > ago(5m)
+      | where type == "SQL"
+      | summarize failed = sumif(itemCount, success == false), total = sum(itemCount)
+      | where total >= 30 and todouble(failed) / total > 0.2
+    condition: "result count > 0"
+
+  - name: alert-sql-connection-failed
+    protects: S1, S3, S11
+    type: metric
+    resource: sqldb-bookswap
+    metric: connection_failed
+    aggregation: Total
+    operator: GreaterThan
+    threshold: 20
+    windowSize: 5m
+    evaluationFrequency: 1m
+    severity: 2
+    actionGroups: [ag-bookswap-oncall]
+    runbook: reliability/runbook.md#failure-1
+
+  - name: alert-cache-bypass
+    protects: S2
+    type: logSearch
+    severity: 3
+    evaluationFrequency: 5m
+    windowSize: 5m
+    actionGroups: [ag-bookswap-ticket]
+    runbook: reliability/runbook.md#failure-2
+    query: |
+      customMetrics
+      | where timestamp > ago(5m)
+      | where name == "cache.bypass_ratio"
+      | summarize ratio = avg(value)
+      | where ratio > 0.2
+    condition: "result count > 0"
+
+  - name: alert-capacity-warning
+    protects: S1 (early warning)
+    type: metric
+    resource: asp-bookswap
+    criteria:
+      - metric: CpuPercentage
+        aggregation: Average
+        operator: GreaterThan
+        threshold: 75
+        windowSize: 10m
+      - metric: HttpQueueLength
+        aggregation: Average
+        operator: GreaterThan
+        threshold: 50
+        windowSize: 10m
+    evaluationFrequency: 5m
+    severity: 3
+    actionGroups: [ag-bookswap-teams]
+    runbook: reliability/runbook.md#failure-3
+
+  - name: alert-sql-pressure
+    protects: S1, S3 (early warning)
+    type: metric
+    resource: sqldb-bookswap
+    criteria:
+      - metric: cpu_percent
+        aggregation: Average
+        operator: GreaterThan
+        threshold: 80
+        windowSize: 10m
+      - metric: workers_percent
+        aggregation: Average
+        operator: GreaterThan
+        threshold: 70
+        windowSize: 10m
+    evaluationFrequency: 5m
+    severity: 3
+    actionGroups: [ag-bookswap-teams]
+    runbook: reliability/runbook.md#failure-3
+
+# Not covered by an Azure alert:
+#   S5, S6  -> CI contract tests block the deploy; failures post to #bookswap-incidents
+#   S10     -> monthly timed drill using the health dashboard
