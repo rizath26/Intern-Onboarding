@@ -1,0 +1,51 @@
+digraph "container-diagram" {
+graph [rankdir=TB, fontname="DejaVu Sans", nodesep=0.45, ranksep=0.9, pad=0.4, splines=true, bgcolor="white", labelloc=t, fontsize=18, label=<<B>GreenChit — Container diagram (C4 Level 2)</B>>];
+node [fontname="DejaVu Sans", style="filled,rounded", margin="0.18,0.12", penwidth=1.2];
+edge [fontname="DejaVu Sans", fontsize=9, color="#555555", fontcolor="#333333", arrowsize=0.8];
+"staff" [shape=box, style="filled,rounded", fillcolor="#08427B", color="#073B6F", label=<<FONT COLOR="#FFFFFF"><B>Staff member</B><BR/><FONT POINT-SIZE="9">[Person]</FONT><BR/><BR/><FONT POINT-SIZE="10">Submits reimbursement claims with<BR/>receipts and tracks their status.</FONT></FONT>>];
+"mgr" [shape=box, style="filled,rounded", fillcolor="#08427B", color="#073B6F", label=<<FONT COLOR="#FFFFFF"><B>Line manager</B><BR/><FONT POINT-SIZE="9">[Person]</FONT><BR/><BR/><FONT POINT-SIZE="10">Approves, rejects or asks for more<BR/>information on a direct report&#x27;s<BR/>claim.</FONT></FONT>>];
+"fin" [shape=box, style="filled,rounded", fillcolor="#08427B", color="#073B6F", label=<<FONT COLOR="#FFFFFF"><B>Finance officer</B><BR/><FONT POINT-SIZE="9">[Person]</FONT><BR/><BR/><FONT POINT-SIZE="10">Exports approved claims for<BR/>payroll and marks batches as paid.</FONT></FONT>>];
+"aud" [shape=box, style="filled,rounded", fillcolor="#08427B", color="#073B6F", label=<<FONT COLOR="#FFFFFF"><B>Auditor</B><BR/><FONT POINT-SIZE="9">[Person]</FONT><BR/><BR/><FONT POINT-SIZE="10">Reviews the audit trail of any<BR/>claim (read-only).</FONT></FONT>>];
+"entra" [shape=box, style="filled,rounded", fillcolor="#8C8C8C", color="#6B6B6B", label=<<FONT COLOR="#FFFFFF"><B>Microsoft Entra ID</B><BR/><FONT POINT-SIZE="9">[External system]</FONT><BR/><BR/><FONT POINT-SIZE="10">BISTEC tenant. Single sign-on, app<BR/>roles (Finance, Auditor) and<BR/>manager relationships.</FONT></FONT>>];
+"teams" [shape=box, style="filled,rounded", fillcolor="#8C8C8C", color="#6B6B6B", label=<<FONT COLOR="#FFFFFF"><B>Teams Workflows</B><BR/><FONT POINT-SIZE="9">[External system]</FONT><BR/><BR/><FONT POINT-SIZE="10">Power Automate workflow behind a<BR/>webhook. Posts the Adaptive Card<BR/>to the manager&#x27;s Teams chat.</FONT></FONT>>];
+"exo" [shape=box, style="filled,rounded", fillcolor="#8C8C8C", color="#6B6B6B", label=<<FONT COLOR="#FFFFFF"><B>Exchange Online</B><BR/><FONT POINT-SIZE="9">[External system]</FONT><BR/><BR/><FONT POINT-SIZE="10">Sends fallback email from a no-<BR/>reply mailbox.</FONT></FONT>>];
+"spo" [shape=box, style="filled,rounded", fillcolor="#8C8C8C", color="#6B6B6B", label=<<FONT COLOR="#FFFFFF"><B>SharePoint Online</B><BR/><FONT POINT-SIZE="9">[External system]</FONT><BR/><BR/><FONT POINT-SIZE="10">Payroll export folder.</FONT></FONT>>];
+"payroll" [shape=box, style="filled,rounded", fillcolor="#8C8C8C", color="#6B6B6B", label=<<FONT COLOR="#FFFFFF"><B>Payroll automation</B><BR/><FONT POINT-SIZE="9">[External system]</FONT><BR/><BR/><FONT POINT-SIZE="10">Watches the export folder and<BR/>loads CSVs into the payroll<BR/>system.</FONT></FONT>>];
+"def" [shape=box, style="filled,rounded", fillcolor="#8C8C8C", color="#6B6B6B", label=<<FONT COLOR="#FFFFFF"><B>Defender for Storage</B><BR/><FONT POINT-SIZE="9">[External system]</FONT><BR/><BR/><FONT POINT-SIZE="10">On-upload malware scanning. Writes<BR/>the result as a blob index tag.</FONT></FONT>>];
+subgraph "cluster_gc" { label=<<B>GreenChit</B><BR/><FONT POINT-SIZE="9">[Software System]</FONT>>; labeljust=l; fontsize=12; style="dashed,rounded"; color="#444444"; fontcolor="#444444";
+"web" [shape=box, style="filled,rounded", fillcolor="#1168BD", color="#0B4884", label=<<FONT COLOR="#FFFFFF"><B>Web App</B><BR/><FONT POINT-SIZE="9">[Container: React SPA, TypeScript,<BR/>MSAL.js — runs in the browser]</FONT><BR/><BR/><FONT POINT-SIZE="10">Mobile-friendly UI for all four<BR/>roles. Uploads receipts straight<BR/>to the Receipt Store in resumable<BR/>blocks.</FONT></FONT>>];
+"api" [shape=box, style="filled,rounded", fillcolor="#1168BD", color="#0B4884", label=<<FONT COLOR="#FFFFFF"><B>Claims API</B><BR/><FONT POINT-SIZE="9">[Container: ASP.NET Core (.NET 10) on<BR/>Azure App Service, Linux P0v3 × 2]</FONT><BR/><BR/><FONT POINT-SIZE="10">Serves the Web App files and the<BR/>REST API. Enforces the claim state<BR/>machine and access rules. Runs<BR/>background outbox publisher,<BR/>notification dispatcher and<BR/>export.</FONT></FONT>>];
+"db" [shape=cylinder, style="filled", fillcolor="#1168BD", color="#0B4884", label=<<FONT COLOR="#FFFFFF"><B>Claims Database</B><BR/><FONT POINT-SIZE="9">[Container: Azure SQL Database, General<BR/>Purpose, 2 vCore]</FONT><BR/><BR/><FONT POINT-SIZE="10">Claims, receipt metadata, outbox<BR/>and notification log. Audit log in<BR/>an append-only ledger table.</FONT></FONT>>];
+"blob" [shape=cylinder, style="filled", fillcolor="#1168BD", color="#0B4884", label=<<FONT COLOR="#FFFFFF"><B>Receipt Store</B><BR/><FONT POINT-SIZE="9">[Container: Azure Blob Storage, private<BR/>container]</FONT><BR/><BR/><FONT POINT-SIZE="10">Receipt images. Reachable only<BR/>with short-lived user-delegation<BR/>SAS URLs.</FONT></FONT>>];
+"sb" [shape=box, style="filled,rounded,bold", fillcolor="#1168BD", color="#0B4884", label=<<FONT COLOR="#FFFFFF"><B>Event Queue</B><BR/><FONT POINT-SIZE="9">[Container: Azure Service Bus Standard,<BR/>queue: claim-events]</FONT><BR/><BR/><FONT POINT-SIZE="10">Buffers claim events for<BR/>notification delivery, with retry<BR/>and dead-lettering.</FONT></FONT>>];
+"digest" [shape=cylinder, style="filled", fillcolor="#1168BD", color="#0B4884", label=<<FONT COLOR="#FFFFFF"><B>Ledger Digest Store</B><BR/><FONT POINT-SIZE="9">[Container: Azure Blob Storage with<BR/>immutability policy]</FONT><BR/><BR/><FONT POINT-SIZE="10">Holds database ledger digests so<BR/>audit tampering can be detected.</FONT></FONT>>];
+"kv" [shape=box, style="filled,rounded", fillcolor="#1168BD", color="#0B4884", label=<<FONT COLOR="#FFFFFF"><B>Key Vault</B><BR/><FONT POINT-SIZE="9">[Container: Azure Key Vault]</FONT><BR/><BR/><FONT POINT-SIZE="10">Holds the Teams Workflows webhook<BR/>URL (the URL itself is a secret).</FONT></FONT>>];
+"ai" [shape=box, style="filled,rounded", fillcolor="#1168BD", color="#0B4884", label=<<FONT COLOR="#FFFFFF"><B>Application Insights</B><BR/><FONT POINT-SIZE="9">[Container: Azure Monitor]</FONT><BR/><BR/><FONT POINT-SIZE="10">Request traces, dependency timings<BR/>(p95 submit), alerts on dead-<BR/>letters.</FONT></FONT>>];
+}
+"staff" -> "web" [label=<Submits claims and tracks<BR/>status using<BR/><FONT POINT-SIZE="8">[HTTPS]</FONT>>, style="solid"];
+"mgr" -> "web" [label=<Reviews and decides claims<BR/>using<BR/><FONT POINT-SIZE="8">[HTTPS]</FONT>>, style="solid"];
+"fin" -> "web" [label=<Exports approved claims using<BR/><FONT POINT-SIZE="8">[HTTPS]</FONT>>, style="solid"];
+"aud" -> "web" [label=<Reads audit trail using<BR/><FONT POINT-SIZE="8">[HTTPS]</FONT>>, style="solid"];
+"web" -> "entra" [label=<Signs users in via<BR/><FONT POINT-SIZE="8">[OIDC auth code + PKCE, HTTPS]</FONT>>, style="solid"];
+"web" -> "api" [label=<Calls<BR/><FONT POINT-SIZE="8">[HTTPS/JSON, Bearer JWT]</FONT>>, style="solid"];
+"web" -> "blob" [label=<Uploads receipt blocks to /<BR/>reads receipts from<BR/><FONT POINT-SIZE="8">[HTTPS, user-delegation SAS]</FONT>>, style="solid"];
+"api" -> "db" [label=<Reads and writes claims,<BR/>audit, outbox in<BR/><FONT POINT-SIZE="8">[TDS over TLS, managed identity]</FONT>>, style="solid"];
+"api" -> "blob" [label=<Issues SAS for and checks<BR/>receipts in<BR/><FONT POINT-SIZE="8">[HTTPS, managed identity]</FONT>>, style="solid"];
+"api" -> "sb" [label=<Publishes and consumes claim<BR/>events on<BR/><FONT POINT-SIZE="8">[AMQP over TLS, managed identity]</FONT>>, style="solid"];
+"api" -> "kv" [label=<Reads webhook URL from<BR/><FONT POINT-SIZE="8">[HTTPS, managed identity]</FONT>>, style="solid"];
+"api" -> "entra" [label=<Validates tokens and looks up<BR/>managers in<BR/><FONT POINT-SIZE="8">[HTTPS, OIDC metadata + Microsoft<BR/>Graph]</FONT>>, style="solid", constraint=false];
+"api" -> "teams" [label=<Posts approval card to<BR/><FONT POINT-SIZE="8">[HTTPS webhook, Adaptive Card<BR/>JSON]</FONT>>, style="solid", constraint=false];
+"api" -> "exo" [label=<Sends fallback email via<BR/><FONT POINT-SIZE="8">[HTTPS, Microsoft Graph sendMail]</FONT>>, style="solid", constraint=false];
+"api" -> "spo" [label=<Uploads payroll CSV to<BR/><FONT POINT-SIZE="8">[HTTPS, Microsoft Graph<BR/>(Sites.Selected)]</FONT>>, style="solid"];
+"api" -> "ai" [label=<Sends telemetry to<BR/><FONT POINT-SIZE="8">[HTTPS, OpenTelemetry]</FONT>>, style="solid"];
+"db" -> "digest" [label=<Writes ledger digests to<BR/><FONT POINT-SIZE="8">[HTTPS, Azure-managed]</FONT>>, style="solid"];
+"def" -> "blob" [label=<Scans new blobs and tags<BR/>results in<BR/><FONT POINT-SIZE="8">[Azure-internal]</FONT>>, style="solid"];
+"teams" -> "mgr" [label=<Notifies<BR/><FONT POINT-SIZE="8">[Teams chat (Flow bot)]</FONT>>, style="solid", constraint=false];
+"exo" -> "mgr" [label=<Emails (fallback)<BR/><FONT POINT-SIZE="8">[SMTP / Outlook]</FONT>>, style="solid", constraint=false];
+"payroll" -> "spo" [label=<Picks up CSV from<BR/><FONT POINT-SIZE="8">[SharePoint folder trigger]</FONT>>, style="solid"];
+legend [shape=plaintext, style="", label=<<TABLE BORDER="1" COLOR="#999999" CELLBORDER="0" CELLSPACING="4" CELLPADDING="4"><TR><TD COLSPAN="2" ALIGN="LEFT"><B>Legend</B></TD></TR><TR><TD BGCOLOR="#08427B" WIDTH="28"> </TD><TD ALIGN="LEFT">Person</TD></TR><TR><TD BGCOLOR="#1168BD"> </TD><TD ALIGN="LEFT">Container (cylinder = data store)</TD></TR><TR><TD BGCOLOR="#85BBF0"> </TD><TD ALIGN="LEFT">Component</TD></TR><TR><TD BGCOLOR="#8C8C8C"> </TD><TD ALIGN="LEFT">External system (not built by us)</TD></TR><TR><TD ALIGN="LEFT">- - -</TD><TD ALIGN="LEFT">Boundary</TD></TR><TR><TD ALIGN="LEFT">→</TD><TD ALIGN="LEFT">Verb-led relationship [protocol]</TD></TR></TABLE>>];
+{rank=same; "spo"; "payroll";}
+"staff" -> "entra" [style=invis];
+"mgr" -> "teams" [style=invis];
+"mgr" -> "exo" [style=invis];
+}
