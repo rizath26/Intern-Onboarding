@@ -1,10 +1,15 @@
-// Masks card-number-like text before anything is sent to the LLM (spec §3 Side effects, AC-06).
+// PII handling for text that leaves the Claims API (spec §3 "Data boundary").
 
-// 12-19 digits, optionally separated by single spaces or dashes.
-const FULL_CARD = /\b(?:\d[ -]?){11,18}\d\b/g;
-// Masked cards ending in last-4, e.g. "XXXX-XXXX-XXXX-1234", "**** 1234", "•••• 1234".
-const MASKED_CARD = /(?:[*Xx•#]{2,}[ -]?){1,4}\d{4}\b/g;
+const CARD_MASK = "[card]";
 
+// A run of 12–19 card characters (digits, or X/* used for masked digits), optionally
+// separated by single spaces or hyphens, not glued to surrounding alphanumerics.
+const CARD_LIKE = /(?<![0-9A-Za-z*])(?:[0-9Xx*][ -]?){11,18}[0-9Xx*](?![0-9A-Za-z*])/g;
+
+/** Masks anything that looks like a card number, including partially masked ones (e.g. XXXX-XXXX-XXXX-1234). */
 export function maskCardNumbers(text: string): string {
-  return text.replace(FULL_CARD, "[CARD]").replace(MASKED_CARD, "[CARD]");
+  return text.replace(CARD_LIKE, (match) => {
+    const digits = match.replace(/[^0-9]/g, "").length;
+    return digits >= 4 ? CARD_MASK : match;
+  });
 }

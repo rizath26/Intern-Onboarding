@@ -1,71 +1,37 @@
-// Keyword fallback used when the LLM is unavailable, slow, or returns invalid output.
-// Confidence is capped at 0.5 (spec §3), so every rule-based suggestion "Needs review".
+// Rule-based fallback (spec §2 scope item 2). Runs locally; never exceeds RULE_BASED_MAX_CONFIDENCE.
+import { RULE_BASED_MAX_CONFIDENCE, type Category, type ParsedReceipt } from "./types.js";
 
-import { CATEGORIES, Category, ParsedReceipt, RULE_BASED_MAX_CONFIDENCE } from "./types.js";
-
-// Note: "hotel" is deliberately absent. In Sri Lanka it often means a small eatery,
-// so it is ambiguous between Meals and Lodging.
 const KEYWORDS: Record<Exclude<Category, "Other">, string[]> = {
-  Meals: [
-    "restaurant", "cafe", "café", "coffee", "tea", "lunch", "dinner", "breakfast", "meal", "food",
-    "rice", "curry", "kottu", "hoppers", "juice", "burger", "pizza", "sandwich", "bakery", "buffet",
-  ],
-  Travel: [
-    "taxi", "uber", "pickme", "ride", "fuel", "petrol", "diesel", "train", "bus", "flight", "airline",
-    "airport", "parking", "toll", "tuk", "fare",
-  ],
-  Lodging: [
-    "room", "accommodation", "lodging", "guest house", "guesthouse", "resort", "villa", "check-in",
-    "check-out", "night stay", "bungalow",
-  ],
-  "Office Supplies": [
-    "pen", "pens", "pencil", "paper", "a4", "stapler", "staples", "notebook", "printer", "toner", "ink",
-    "cartridge", "envelope", "folder", "stationery", "marker", "highlighter", "file",
-  ],
+  Meals: ["restaurant", "cafe", "coffee", "tea", "kottu", "rice", "juice", "lunch", "dinner", "breakfast", "meal", "food", "chicken", "burger", "pizza"],
+  Travel: ["ride", "taxi", "cab", "pickme", "uber", "airport", "bia", "flight", "airline", "train", "bus", "fuel", "petrol", "parking", "toll"],
+  Lodging: ["hotel", "room", "lodge", "inn", "resort", "accommodation", "guesthouse"],
+  "Office Supplies": ["paper", "pen", "pens", "stapler", "ink", "toner", "notebook", "envelope", "folder", "a4", "stationery"],
 };
-
-function escapeRegExp(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-const PATTERNS = Object.fromEntries(
-  Object.entries(KEYWORDS).map(([category, words]) => [
-    category,
-    new RegExp(`(?<![\\p{L}\\p{N}])(?:${words.map(escapeRegExp).join("|")})(?![\\p{L}\\p{N}])`, "iu"),
-  ]),
-) as Record<Exclude<Category, "Other">, RegExp>;
 
 export interface RuleBasedResult {
   category: Category;
   confidence: number;
 }
 
+/** Picks the category with the most keyword hits. No hits or a tie → "Other" with confidence 0. */
 export function categoriseByRules(receipt: ParsedReceipt): RuleBasedResult {
-  const texts = [receipt.merchantName ?? "", ...receipt.items.map((i) => i.description)].filter(
-    (t) => t.trim().length > 0,
-  );
+  const text = [receipt.merchantName ?? "", ...receipt.items.map((i) => i.description)].join(" ").toLowerCase();
+  const words = new Set(text.split(/[^a-z0-9]+/).filter(Boolean));
 
-  const scores = new Map<Category, number>();
-  for (const text of texts) {
-    for (const [category, pattern] of Object.entries(PATTERNS) as [Category, RegExp][]) {
-      if (pattern.test(text)) scores.set(category, (scores.get(category) ?? 0) + 1);
-    }
-  }
-
-  const total = [...scores.values()].reduce((a, b) => a + b, 0);
-  if (total === 0) return { category: "Other", confidence: 0.2 };
-
-  // Highest score wins; ties are broken by the fixed order in CATEGORIES (deterministic).
   let best: Category = "Other";
   let bestScore = 0;
-  for (const category of CATEGORIES) {
-    const score = scores.get(category) ?? 0;
+  let tie = false;
+  for (const [category, keywords] of Object.entries(KEYWORDS) as [Category, string[]][]) {
+    const score = keywords.filter((k) => words.has(k)).length;
     if (score > bestScore) {
       best = category;
       bestScore = score;
+      tie = false;
+    } else if (score > 0 && score === bestScore) {
+      tie = true;
     }
   }
 
-  const confidence = Math.round(RULE_BASED_MAX_CONFIDENCE * (bestScore / total) * 100) / 100;
-  return { category: best, confidence };
+  if (bestScore === 0 || tie) return { category: "Other", confidence: 0 };
+  return { category: best, confidence: RULE_BASED_MAX_CONFIDENCE };
 }
